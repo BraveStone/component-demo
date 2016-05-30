@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Slide</title>
+    <style type="text/css">
+    .max-min-curr-slide {
+        width: 200px;
+        height: 40px;
+        background-color: #ffeeee;
+    }
+    .top-slide-area {
+        width: 100%;
+        height: 20px;
+        position: relative;
+    }
+    .curr-value-slide-body {
+        position: absolute;
+        cursor: move;
+        top: 0;
+    }
+    .curr-value-slide-rectangle {
+        width: 12px;
+        height: 12px;
+        background-color: red;
+    }
+    .curr-value-slide-triangle {
+        width: 0;
+        height: 0;
+        border-top: 8px solid red;
+        border-left: 6px solid #ffeeee;
+        border-right: 6px solid #ffeeee;
+    }
+    .slide-area-line {
+        border-top: 2px solid red;
+        margin-left: 6px;
+        margin-right: 6px;
+    }
+    .bottom-slide-area{
+        width: 100%;
+        height: 20px;
+        position: relative;
+    }
+    .min-value-slide-body {
+        position: absolute;
+        cursor: move;
+        top: 0;
+        border-right: 6px solid red;
+        border-top: 6px solid #ffeeee;
+        border-bottom: 14px solid red;
+    }
+    .max-value-slide-body {
+        position: absolute;
+        cursor: move;
+        top: 0;
+        border-left: 6px solid red;
+        border-top: 6px solid #ffeeee;
+        border-bottom: 14px solid red;
+    }
+
+        #curr-value {
+
+        }
+        #max-value {
+
+        }
+        #min-value {
+
+        }
+    </style>
+</head>
+<body>
+    <div id="min-value"></div>
+    <div id="max-value"></div>
+    <div id="curr-value"></div>
+    <div class="max-min-curr-slide">
+        <div class="top-slide-area">
+            <div class="curr-value-slide-body">
+                <div class="curr-value-slide-rectangle"></div>
+                <div class="curr-value-slide-triangle"></div>
+            </div>
+        </div>
+        <div class="slide-area-line"></div>
+        <div class="bottom-slide-area">
+            <div class="min-value-slide-body"></div>
+            <div class="max-value-slide-body"></div>
+        </div>
+    </div>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-rc1/jquery.js"></script>
+    <script type="text/javascript">
+        function DrogObj(obj, currX, minX, maxX, stepLen, onChange, isMaxObj) {
+            this.minX = minX;
+            this.maxX = maxX;
+            var M = false;
+            var Rx;
+            var t = $(obj);
+            var that = this;
+            if (isMaxObj) { currX += 6; }
+            t.css('left', currX );
+            t.mousedown(function (event) {
+                Rx = event.pageX - (parseInt(t.css("left")) || 0);
+                t.css('cursor', 'move').fadeTo(20, 0.5);
+                M = true;
+            })
+            .mouseup(function (event) {
+                M = false; t.fadeTo(20, 1);
+            });
+            $(document).mousemove(function (event) {
+                if (!M) { return; }
+
+                var mX = event.pageX - Rx;
+                mX = Math.round(mX/stepLen) * stepLen;
+                mX = Math.max(mX, that.minX);
+                mX = Math.min(mX, that.maxX);
+                if (parseInt(t.css("left")) === mX) {
+                    return;
+                }
+                if (isMaxObj) { t.css({left: mX + 6 }); }
+                else  { t.css({left: mX }); }
+                if (onChange) {
+                    onChange(mX);
+                }
+            })
+            .mouseup(function (event) {
+                if (M) {
+                    M = false; t.fadeTo(20, 1);
+                }
+            });
+        }
+        function MySilideObj(obj, max, min, step, currMax, currMin, currVal) {
+            this.srcMax = max;
+            this.srcMin = min;
+            this.srcStep = step;
+            this.currMax = currMax;
+            this.currMin = currMin;
+            this.currVal = currVal;
+
+            var that = this;
+            var t = $(obj);
+            var w = parseInt(t.children('.slide-area-line').width());
+            var nW = Math.abs(Math.ceil((max - min)/step));
+            var stepLen = w/nW;
+
+            /*{
+                var nC = currVal/step*stepLen;
+                var nMx = currMax/step*stepLen;
+                var nMn = currMin/step*stepLen;
+                this.currObj = new DrogObj(t.children('.top-slide-area').children('.curr-value-slide-body'), nC, nMn, nMx, stepLen, this.onCurrChange);
+                this.maxObj = new DrogObj(t.children('.bottom-slide-area').children('.max-value-slide-body'), nMx, nMn, w, stepLen, this.onMaxchange);
+                this.minObj = new DrogObj(t.children('.bottom-slide-area').children('.min-value-slide-body'), nMn, 0, nC, stepLen, this.onMinchange);
+            }*/
+            this.onMinChange = function (nVal) {
+                that.currObj.minX = nVal;
+                if (that.minValueChange) {
+                    var ret = Math.round(step*nVal/stepLen) + that.srcMin;
+                    that.minValueChange(ret);
+                }
+            };
+            this.onMaxChange = function (nVal) {
+                that.currObj.maxX = nVal;
+                if (that.maxValueChange) {
+                    var ret = that.srcMax;
+                    if (nVal < w) {
+                        ret = Math.round(step*nVal/stepLen) + that.srcMin;
+                    }
+                    that.maxValueChange(ret);
+                }
+            };
+            this.onCurrChange = function (nVal) {
+                that.minObj.maxX = nVal;
+                that.maxObj.minX = nVal;
+                if (that.currValueChange) {
+                    var ret = that.srcMax;
+                    if (nVal < w) {
+                        ret = Math.round(step*nVal/stepLen) + that.srcMin;
+                    }
+                    that.currValueChange(ret);
+                }
+            };
+            var nC = (currVal - min)/step*stepLen;
+            var nMx = Math.min((currMax-min)/step*stepLen, w);
+            var nMn = (currMin-min)/step*stepLen;
+            var currDoc = t.children('.top-slide-area').children('.curr-value-slide-body');
+            var maxDoc = t.children('.bottom-slide-area').children('.max-value-slide-body');
+            var minDoc = t.children('.bottom-slide-area').children('.min-value-slide-body');
+            this.currObj = new DrogObj(currDoc, nC, nMn, nMx, stepLen, this.onCurrChange);
+            this.maxObj = new DrogObj(maxDoc, nMx, nMn, w, stepLen, this.onMaxChange, true);
+            this.minObj = new DrogObj(minDoc, nMn, 0, nC, stepLen, this.onMinChange);
+        }
+
+        var obj = new MySilideObj($('.max-min-curr-slide'), 134, 20, 5, 128, 34, 58);
+        obj.maxValueChange = function (val) {
+            $('#max-value')[0].innerHTML = val;
+        }
+        obj.minValueChange = function (val) {
+            $('#min-value')[0].innerHTML = val;
+        }
+        obj.currValueChange = function (val) {
+            $('#curr-value')[0].innerHTML = val;
+        }
+    </script>
+</body>
+</html>
